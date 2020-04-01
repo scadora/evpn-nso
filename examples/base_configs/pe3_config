@@ -1,0 +1,164 @@
+ssh server v2
+ssh server netconf
+netconf-yang agent ssh
+
+hostname PE3
+line console
+ exec-timeout 0 0
+ absolute-timeout 0
+ session-timeout 0
+!
+line default
+ exec-timeout 0 0
+ absolute-timeout 0
+ session-timeout 0
+!
+interface Loopback0
+  description Loopback
+  ipv4 address 192.168.0.3 255.255.255.255
+!
+interface HundredGigE0/0/0/0
+  description to CE34
+  !ipv4 address 10.0.0.37 255.255.255.252
+  no shutdown
+!
+interface HundredGigE0/0/0/1
+  description to PE4
+  ipv4 address 10.0.0.33 255.255.255.252
+  no shutdown
+!
+interface HundredGigE0/0/0/2
+  description to PE1
+  ipv4 address 10.0.0.10 255.255.255.252
+  no shutdown
+!
+interface HundredGigE0/0/0/3
+  description to CE34b
+!  ipv4 address 10.0.0.29 255.255.255.252
+  no shutdown
+!  
+vrf TEST
+ address-family ipv4 unicast
+  import route-target
+   100:100
+  !
+  export route-target
+   100:100
+!
+!
+!
+rsvp
+  interface HundredGigE0/0/0/1
+    bandwidth percent 100
+  !
+  interface HundredGigE0/0/0/2
+    bandwidth percent 100
+  !
+  interface HundredGigE0/0/0/3
+    bandwidth percent 100
+  !
+!
+!
+router isis 1
+ net 49.1921.6800.0003.00
+ address-family ipv4 unicast
+  metric-style wide
+  mpls traffic-eng level-2-only
+  mpls traffic-eng router-id Loopback0
+  segment-routing mpls sr-prefer
+ !
+ interface Loopback0
+  passive
+  circuit-type level-2-only
+  address-family ipv4 unicast
+   prefix-sid absolute 16003
+  !
+  interface HundredGigE0/0/0/1
+    circuit-type level-2-only
+    point-to-point
+    address-family ipv4 unicast
+        metric 1
+    !
+  !
+  interface HundredGigE0/0/0/2
+    circuit-type level-2-only
+    point-to-point
+    address-family ipv4 unicast
+        metric 1
+    !
+  !
+  interface HundredGigE0/0/0/3
+    circuit-type level-2-only
+    point-to-point
+    address-family ipv4 unicast
+        metric 1
+    !
+  !
+!
+mpls traffic-eng
+  interface HundredGigE0/0/0/1
+  !
+  interface HundredGigE0/0/0/2
+  !
+  interface HundredGigE0/0/0/3
+  !
+!
+mpls ldp
+    router-id 192.168.0.3
+    interface HundredGigE0/0/0/1
+    !
+    interface HundredGigE0/0/0/2
+    !
+    interface HundredGigE0/0/0/3
+    !
+!
+route-policy bgp_in
+  pass
+end-policy
+!
+route-policy bgp_out
+  pass
+end-policy
+!
+router bgp 1
+  bgp router-id 192.168.0.3
+  address-family l2vpn evpn
+  address-family vpnv4 unicast
+  !
+! iBGP
+!
+! iBGP peers
+  !
+  neighbor 192.168.0.1
+    description iBGP peer PE1
+    remote-as 1
+    update-source Loopback0
+    address-family vpnv4 unicast
+    address-family l2vpn evpn
+    !
+    !
+  !
+  neighbor 192.168.0.2
+    description iBGP peer PE2
+    remote-as 1
+    update-source Loopback0
+    address-family vpnv4 unicast
+    address-family l2vpn evpn
+    !
+    !
+  !
+  neighbor 192.168.0.4
+    description iBGP peer PE4
+    remote-as 1
+    update-source Loopback0
+    address-family vpnv4 unicast
+    address-family l2vpn evpn
+    !
+    !
+    vrf TEST 
+     rd auto
+      address-family ipv4 unicast
+      additional-paths receive
+      maximum-paths ibgp 2
+      redistribute connected
+

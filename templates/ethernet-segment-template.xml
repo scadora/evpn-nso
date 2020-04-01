@@ -1,0 +1,80 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+
+      <name>{device-id}</name>
+      <config>
+
+        <?if {$BUNDLE_ID > 0}?>
+          <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+
+            <?foreach {interface}?>
+              <interface-configuration>
+                <active>act</active>
+                <interface-name>{interface-type}{interface-id}</interface-name>
+                <bundle-member xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-bundlemgr-cfg">
+                 <id>
+                  <bundle-id>{$BUNDLE_ID}</bundle-id>
+                  <port-activity>active</port-activity>
+                 </id>
+                </bundle-member>
+              </interface-configuration>
+            <?end?>
+
+          </interface-configurations>
+        <?end?>
+
+
+        <?set INTERFACE_NAME={interface[1]/interface-type}{interface[1]/interface-id}?>
+        <?if {$BUNDLE_ID > 0}?>
+          <?set INTERFACE_NAME=Bundle-Ether{$BUNDLE_ID}?>
+        <?end?>
+
+        <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+
+          <?if {$BUNDLE_ID > 0}?>
+            <interface-configuration>
+              <active>act</active>
+              <interface-name>Bundle-Ether{$BUNDLE_ID}</interface-name>
+              <interface-virtual></interface-virtual>
+                <lacp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-bundlemgr-cfg">
+                 <system-mac>{$SYSTEM_MAC}</system-mac>
+                 <system-priority>1</system-priority>
+                </lacp>
+            </interface-configuration>
+          <?end?>
+
+        </interface-configurations>
+
+        <?if {$BUNDLE_ID > 0}?>
+          <evpn xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-l2vpn-cfg">
+            <enable/>
+            <evpn-tables>
+              <evpn-interfaces>
+                <evpn-interface>
+                  <interface-name>Bundle-Ether{$BUNDLE_ID}</interface-name>
+                  <ethernet-segment>
+                    <enable/>
+                    <identifier>
+                      <bytes01>00</bytes01>
+                      <bytes23>0000</bytes23>
+                      <bytes45>0000</bytes45>
+                      <bytes67>{$BYTES67}</bytes67>
+                      <bytes89>{$BYTES89}</bytes89>
+                      <type>type0</type>
+                    </identifier>
+                    <?if {../load-balancing = "port-active" or ../load-balancing = "single-active"}?>
+                      <load-balancing-mode>{../load-balancing}</load-balancing-mode>
+                    <?end?>
+                  </ethernet-segment>
+                </evpn-interface>
+              </evpn-interfaces>
+            </evpn-tables>
+          </evpn>
+
+        <?end?>
+      </config>
+    </device>
+  </devices>
+</config-template>
+

@@ -1,0 +1,66 @@
+ssh server v2
+ssh server netconf
+netconf-yang agent ssh
+
+hostname CE12
+line console
+ exec-timeout 0 0
+ absolute-timeout 0
+ session-timeout 0
+!
+line default
+ exec-timeout 0 0
+ absolute-timeout 0
+ session-timeout 0
+!
+interface Loopback0
+  description Loopback
+  ipv4 address 192.168.0.5 255.255.255.255
+!
+interface Bundle-Ether1
+!
+interface Bundle-Ether1.10
+ ipv4 address 10.0.10.5 255.255.255.0
+ encapsulation dot1q 10
+ !
+ !
+interface Bundle-Ether1.20
+ ipv4 address 10.0.20.5 255.255.255.0
+ encapsulation dot1q 20
+ !
+interface Bundle-Ether1.30
+ ipv4 address 10.0.30.5 255.255.255.0
+ encapsulation dot1q 30
+!
+interface Bundle-Ether1.40
+ ipv4 address 10.0.40.5 255.255.255.0
+ encapsulation dot1q 40
+!
+interface Bundle-Ether2.110
+ ipv4 address 10.0.110.5 255.255.255.0
+ encapsulation dot1q 110
+!
+interface Bundle-Ether2.120
+ ipv4 address 10.0.120.5 255.255.255.0
+ encapsulation dot1q 120
+ !
+ !
+interface HundredGigE0/0/0/0
+  description to PE1
+   bundle id 1 mode active
+  no shutdown
+!
+interface HundredGigE0/0/0/1
+  description to PE2
+  bundle id 1 mode active
+  no shutdown
+  !
+interface HundredGigE0/0/0/2
+  description to PE1
+  bundle id 2 mode active
+  no shutdown
+!
+interface HundredGigE0/0/0/3
+  description to PE2
+  bundle id 2 mode active
+  no shutdown

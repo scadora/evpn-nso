@@ -1,0 +1,202 @@
+module evpn {
+  namespace "http://example.com/evpn";
+  prefix evpn;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  description
+    "EVPN Function Pack";
+
+  revision 2020-01-08 {
+    description
+      "Initial revision.";
+  }
+
+  grouping evpn-instance-grouping {
+    leaf-list ethernet-segments {
+      type leafref {
+        path "/ethernet-segment/segment-name";
+      }
+    }
+    leaf encapsulation {
+      tailf:info "EVPN Encapsulation";
+      tailf:cli-incomplete-command;
+      type enumeration {
+        enum "untagged";
+        enum "dot1q";
+      }
+      default "untagged";
+    }
+    leaf vlan-id {
+      tailf:info "EVPN Encapsulation VLAN Id";
+      tailf:cli-drop-node-name;
+      when "../encapsulation = 'dot1q'";
+      type uint32 {
+        range "1..4000";
+      }
+    }
+  }
+
+  list ethernet-segment {
+    must "count(device/interface) < 2 or homing-type = 'multi-homed'" {
+      error-message "Site must be multi-homed when it contains more than one interface";
+    }
+    key "segment-name";
+    description
+      "ethernet segment";
+    leaf segment-name {
+      tailf:info "Name of ethernet-segment";
+      tailf:cli-allow-range;
+      type string;
+    }
+    uses ncs:service-data;
+    ncs:servicepoint "ethernet-segment-servicepoint";
+    leaf homing-type {
+      tailf:info "Type of homing for this site. If site contains multiple devices, type must be multi-homed.";
+      type enumeration {
+        enum "single-homed";
+        enum "multi-homed";
+      }
+      default "multi-homed";
+    }
+    leaf load-balancing {
+      when "../homing-type = 'multi-homed'";
+      tailf:info "Type of load-balancing for this site";
+      type enumeration {
+        enum "all-active";
+        enum "single-active";
+        enum "port-active";
+      }
+      default "all-active";
+    }
+    list device {
+      key "device-id";
+      leaf device-id {
+        tailf:info "Identifier of device";
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+      }
+      list interface {
+        tailf:info "Interface list";
+        key "interface-type interface-id";
+        leaf interface-type {
+          tailf:info "Interface Type";
+          type enumeration {
+            enum "GigabitEthernet";
+            enum "TenGigE";
+            enum "FortyGigE";
+            enum "HundredGigE";
+          }
+        }
+        leaf interface-id {
+          tailf:info "Interface Id";
+          type string {
+            pattern "[0-9]+(/[0-9]+)*";
+          }
+        }
+      }
+      leaf bundle-id {
+        tailf:cdb-oper {
+          tailf:persistent "true";
+        }
+        type uint16;
+        config false;
+      }
+    }
+  }
+  list evpn {
+    key "evpn-name";
+    description
+      "Name of this EVPN instance";
+    leaf evpn-name {
+      tailf:info "Name of this EVPN Instance";
+      tailf:cli-allow-range;
+      type string;
+    }
+    uses ncs:service-data;
+    ncs:servicepoint "evpn-servicepoint";
+    choice evpn-type {
+      case vpws {
+        description "Configure evpn virtual private wire service (vpws)";
+        list vpws {
+          tailf:cli-suppress-mode;
+          tailf:cli-compact-syntax;
+          tailf:cli-flatten-container;
+          key "pw-name";
+          description
+            "Pseudo wire definition";
+          leaf pw-name {
+            tailf:info "Name of virtual private wire service (vpws)";
+            tailf:cli-allow-range;
+            type string;
+          }
+
+          uses evpn-instance-grouping {
+            refine ethernet-segments {
+              min-elements "2";
+              max-elements "2";
+            }
+          }
+        }
+      }
+      case bridge {
+        container bridge {
+          tailf:cli-compact-syntax;
+          tailf:cli-flatten-container;
+
+          uses evpn-instance-grouping;
+        }
+      }
+      case irb {
+        container irb {
+          tailf:cli-compact-syntax;
+          tailf:cli-flatten-container;
+
+          uses evpn-instance-grouping;
+
+          container routed-interface {
+            tailf:cli-compact-syntax;
+            tailf:cli-flatten-container;
+            leaf ipv4-address {
+              tailf:info "IPv4 Address for this IRB (e.g. 10.0.1.5)";
+              type inet:ipv4-address;
+            }
+            leaf ipv4-netmask {
+              tailf:info "IPv4 Netmask for this IRB (e.g 255.255.255.240)";
+              type inet:ipv4-address;
+            }
+            leaf vrf-name {
+              tailf:info "Name of the VRF of this IRB";
+              type string;
+            }
+          }
+          list device-bvi {
+            key "device-id";
+            tailf:cdb-oper {
+              tailf:persistent "true";
+            }
+            config false;
+            leaf device-id {
+              tailf:info "Identifier of device";
+              type leafref {
+                path "/ncs:devices/ncs:device/ncs:name";
+              }
+            }
+            leaf bvi-id {
+              type uint16;
+            }
+          }
+        }
+      }
+    }
+  }
+}

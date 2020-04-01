@@ -1,0 +1,128 @@
+<config-template xmlns="http://tail-f.com/ns/config/1.0">
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <?save-context evpn?>
+
+    <?foreach {ethernet-segments} ?>
+      <device>
+        <name>{deref(.)/../device/device-id}</name>
+
+        <?set INTERFACE_NAME={interface[1]/interface-type}{interface[1]/interface-id}?>
+        <?if {bundle-id > 0}?>
+          <?set INTERFACE_NAME=Bundle-Ether{bundle-id}?>
+        <?end?>
+        <?if {/vlan-id}?>
+          <?set INTERFACE_NAME={$INTERFACE_NAME}.{/vlan-id}?>
+        <?end?>
+        <?set BVI_ID={/device-bvi[device-id = current()/device-id]/bvi-id}?>
+
+        <?switch-context evpn?>
+
+        <config>
+          <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+
+            <interface-configuration>
+              <active>act</active>
+              <interface-name>{$INTERFACE_NAME}</interface-name>
+              <?if {/vlan-id}?>
+                <interface-mode-non-physical>l2-transport</interface-mode-non-physical>
+                <ethernet-service xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-l2-eth-infra-cfg">
+                  <encapsulation>
+                    <outer-tag-type>match-dot1q</outer-tag-type>
+                    <outer-range1-low>{vlan-id}</outer-range1-low>
+                  </encapsulation>
+                </ethernet-service>
+              <?else?>
+                <l2-transport xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-l2vpn-cfg">
+                  <enabled/>
+                </l2-transport>
+              <?end?>
+            </interface-configuration>
+
+            <?if {$BVI_ID}?>
+              <interface-configuration>
+                <active>act</active>
+                <interface-name>BVI{$BVI_ID}</interface-name>
+                <interface-virtual />
+                <bvi xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-l2vpn-cfg">
+                  <host-routing />
+                </bvi>
+                <vrf xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-infra-rsi-cfg">{routed-interface/vrf-name}</vrf>
+                <ipv4-network xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-io-cfg">
+                  <addresses>
+                    <primary>
+                      <address>{routed-interface/ipv4-address}</address>
+                      <netmask>{routed-interface/ipv4-netmask}</netmask>
+                    </primary>
+                  </addresses>
+                </ipv4-network>
+                <mac-addr xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-mdrv-lib-cfg">{$IRB_MAC}</mac-addr>
+              </interface-configuration>
+            <?end?>
+
+          </interface-configurations>
+
+          <l2vpn xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-l2vpn-cfg">
+            <enable/>
+            <database>
+              <?if {$PW_ID}?>
+                <xconnect-groups>
+                  <xconnect-group>
+                    <name>{string(../evpn-name)}</name>
+                    <p2p-xconnects>
+                      <p2p-xconnect>
+                        <name>{pw-name}</name>
+                        <attachment-circuits>
+                          <attachment-circuit>
+                            <name>{$INTERFACE_NAME}</name>
+                            <enable/>
+                          </attachment-circuit>
+                        </attachment-circuits>
+                        <pseudowire-evpns>
+                          <pseudowire-evpn>
+                            <eviid>{$EVI}</eviid>
+                            <remote-acid>{$PW_ID}</remote-acid>
+                            <source-acid>{$PW_ID}</source-acid>
+                          </pseudowire-evpn>
+                        </pseudowire-evpns>
+                      </p2p-xconnect>
+                    </p2p-xconnects>
+                  </xconnect-group>
+                </xconnect-groups>
+              <?else?>
+                <bridge-domain-groups>
+                  <bridge-domain-group>
+                    <name>{../evpn-name}</name>
+                    <bridge-domains>
+                      <bridge-domain>
+                        <name>{evpn-name}</name>
+                        <bd-attachment-circuits>
+                          <bd-attachment-circuit>
+                            <name>{$INTERFACE_NAME}</name>
+                          </bd-attachment-circuit>
+                        </bd-attachment-circuits>
+
+                        <?if {$BVI_ID}?>
+                          <routed-interfaces>
+                            <routed-interface>
+                              <interface-name>BVI{$BVI_ID}</interface-name>
+                            </routed-interface>
+                          </routed-interfaces>
+                        <?end?>
+
+                        <bridge-domain-evis>
+                          <bridge-domain-evi>
+                            <vpn-id>{$EVI}</vpn-id>
+                          </bridge-domain-evi>
+                        </bridge-domain-evis>
+                      </bridge-domain>
+                    </bridge-domains>
+                  </bridge-domain-group>
+                </bridge-domain-groups>
+              <?end?>
+            </database>
+          </l2vpn>
+        </config>
+      </device>
+    <?end?>
+  </devices>
+</config-template>

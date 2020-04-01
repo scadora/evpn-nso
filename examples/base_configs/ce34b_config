@@ -1,0 +1,29 @@
+ssh server v2
+ssh server netconf
+netconf-yang agent ssh
+
+hostname CE3
+line console
+ exec-timeout 0 0
+ absolute-timeout 0
+ session-timeout 0
+!
+line default
+ exec-timeout 0 0
+ absolute-timeout 0
+ session-timeout 0
+!
+interface Loopback0
+  description Loopback
+  ipv4 address 192.168.0.7 255.255.255.255
+!
+interface HundredGigE0/0/0/0
+  description to PE3
+!
+interface HundredGigE0/0/0/0.110
+ ipv4 address 10.0.110.7 255.255.255.0
+ encapsulation dot1q 110
+!
+interface HundredGigE0/0/0/0.120
+ ipv4 address 10.0.120.7 255.255.255.0
+ encapsulation dot1q 120

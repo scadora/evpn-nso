@@ -1,0 +1,26 @@
+
+ethernet-segment SJC1 
+device pe1 interface HundredGigE 0/0/0/0
+device pe2 interface HundredGigE 0/0/0/0
+!
+ethernet-segment A2
+device pe1 interface HundredGigE 0/0/0/3
+device pe2 interface HundredGigE 0/0/0/3
+!
+ethernet-segment DEN1 homing-type single-homed 
+device pe3 interface HundredGigE 0/0/0/0
+!
+ethernet-segment B2 homing-type single-homed 
+device pe3 interface HundredGigE 0/0/0/3
+
+ethernet-segment C2 homing-type single-homed
+device pe4 interface HundredGigE 0/0/0/0
+!
+evpn ACME_BRIDGE bridge ethernet-segments [ A2 B2 C2 ] encapsulation dot1q 110
+!
+evpn ACME_IRB irb ethernet-segments [ A2 B2 C2 ] encapsulation dot1q 120 routed-interface ipv4-address 10.0.120.1 ipv4-netmask 255.255.255.0 vrf-name TEST
+!
+evpn ACME_PWs
+ vpws PW1 ethernet-segments [ SJC1 DEN1 ] encapsulation dot1q 10
+ vpws PW2 ethernet-segments [ SJC1 DEN1 ] encapsulation dot1q 20
+ vpws PW3 ethernet-segments [ SJC1 DEN1 ] encapsulation dot1q 30
